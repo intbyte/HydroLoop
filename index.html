@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HydroLoop | V1.0.0</title>
+  <style>
+    :root {
+      --bg-main: #fdfdfb;
+      --bg-panel: #f4f4f2;
+      --border: #cbcbc0;
+      --accent: #2563eb;
+      --text: #1a1a1a;
+      --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    body { margin: 0; font-family: var(--font-mono); background: var(--bg-main); color: var(--text); overflow: hidden; }
+    #app { display: grid; grid-template-rows: 45px 1fr 25px; height: 100vh; }
+    header { background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+    #main { display: flex; flex: 1; position: relative; overflow: hidden; }
+    #canvas-container { flex: 1; position: relative; background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 30px 30px; }
+    canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+    #panel { width: 260px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+    .panel-header { padding: 15px; font-size: 10px; color: #888; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+    .inspector-body { padding: 20px; flex: 1; }
+    
+    .prop-group { margin-bottom: 15px; }
+    .prop-group label { display: block; font-size: 10px; margin-bottom: 6px; font-weight: bold; color: #555; }
+    input { width: 100%; padding: 10px; border: 1px solid var(--border); background: white; font-family: var(--font-mono); font-size: 12px; outline: none; box-sizing: border-box; }
+    input:focus { border-color: var(--accent); }
+
+    .empty-state { color: #aaa; text-align: center; padding: 40px 0; font-style: italic; font-size: 11px; }
+    .btn-danger { width: 100%; margin-top: 20px; padding: 10px; background: transparent; border: 1px solid #dc2626; color: #dc2626; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
+    .btn-danger:hover { background: #fee2e2; }
+
+    footer { background: var(--bg-panel); border-top: 1px solid var(--border); font-size: 9px; padding: 0 15px; display: flex; align-items: center; color: #aaa; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <header>HydroLoop: Solve Pipes with Hardy-Cross Method</header>
+  <div id="main">
+    <div id="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div id="panel">
+      <div class="panel-header">Inspector</div>
+      <div id="selection-ui" class="inspector-body">
+        <div class="empty-state">Select an object to edit properties</div>
+      </div>
+      <div style="padding: 15px; border-top: 1px solid var(--border);">
+        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 5px;">SOLVER</label>
+        <input type="number" id="iter-count" value="5" style="margin-bottom: 5px;">
+        <button class="btn-danger" 
+                style="border-color: var(--accent); color: var(--accent);" 
+                onclick="solveHardyCross(parseInt(document.getElementById('iter-count').value))">
+          RUN ITERATIONS
+        </button>
+      </div>
+      <div style="padding: 15px; border-top: 1px solid var(--border); font-size: 10px; color: #888; line-height: 1.5;">
+        • Double-Click: New Node<br>
+        • Right-Drag: Draw Pipe<br>
+        • Right-Click: Delete Obj<br>
+        • Left-Drag: Move Node
+      </div>
+    </div>
+  </div>
+  <footer>SYSTEM_READY // MAY, 2026</footer>
+</div>
+
+<script>
+const state = {
+  nodes: [],
+  edges: [],
+  selected: null, // { type: 'node'|'edge', obj: ref }
+  isDragging: false,
+  dragTarget: null,
+  edgeDraft: null,
+  rightMouseDownPos: null,
+  hasMovedSignificantly: false
+};
+
+const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
+const container = document.getElementById("canvas-container");
+
+function init() {
+  window.onresize = () => { canvas.width = container.clientWidth; canvas.height = container.clientHeight; };
+  window.onresize();
+
+  canvas.addEventListener('mousedown', handleMouseDown);
+  canvas.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener('mouseup', handleMouseUp);
+  canvas.addEventListener('dblclick', handleDoubleClick);
+  canvas.oncontextmenu = (e) => e.preventDefault();
+
+  requestAnimationFrame(render);
+}
+
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function findAt(x, y) {
+  const node = state.nodes.find(n => Math.hypot(n.x - x, n.y - y) < 15);
+  if (node) return { type: 'node', obj: node };
+  const edge = state.edges.find(e => {
+    const {x: x1, y: y1} = e.from, {x: x2, y: y2} = e.to, l2 = Math.hypot(x2-x1, y2-y1)**2;
+    if (l2 === 0) return false;
+    let t = Math.max(0, Math.min(1, ((x-x1)*(x2-x1) + (y-y1)*(y2-y1)) / l2));
+    return Math.hypot(x - (x1 + t*(x2-x1)), y - (y1 + t*(y2-y1))) < 10;
+  });
+  return edge ? { type: 'edge', obj: edge } : null;
+}
+
+function handleDoubleClick(e) {
+  const {x, y} = getPos(e);
+  const hit = findAt(x, y);
+
+  if (!hit) {
+    // Normal behavior: Create isolated node
+    const newNode = { x, y, demand: 0 };
+    state.nodes.push(newNode);
+    select('node', newNode);
+  } else if (hit.type === 'edge') {
+    // EDGE SPLIT LOGIC
+    const originalEdge = hit.obj;
+    
+    // Create the new junction node at click position
+    const midNode = { x, y, demand: 0 };
+    state.nodes.push(midNode);
+    
+    // Create two new pipes connecting through the midNode
+    // We copy the K value from the original pipe for both new segments
+    const segmentA = { from: originalEdge.from, to: midNode, K: originalEdge.K, Q: originalEdge.Q };
+    const segmentB = { from: midNode, to: originalEdge.to, K: originalEdge.K, Q: originalEdge.Q };
+    
+    state.edges.push(segmentA, segmentB);
+    
+    // Remove the old long pipe
+    state.edges = state.edges.filter(ed => ed !== originalEdge);
+    
+    // Select the new node
+    select('node', midNode);
+  } else if (hit.type === 'node') {
+    // Already a node here, maybe just select it
+    select('node', hit.obj);
+  }
+}
+
+function select(type, obj) {
+  state.selected = type ? { type, obj } : null;
+  updateUI();
+}
+
+function updateUI() {
+  const ui = document.getElementById("selection-ui");
+  if (!state.selected) {
+    ui.innerHTML = `<div class="empty-state">Select an object to edit properties</div>`;
+    return;
+  }
+
+  const { type, obj } = state.selected;
+  const isNode = type === 'node';
+
+  ui.innerHTML = `
+    <div style="font-size:11px; font-weight:bold; margin-bottom:20px; color:var(--accent)">
+      EDITING_${type.toUpperCase()}
+    </div>
+    <div class="prop-group">
+      <label>${isNode ? 'DEMAND (L/S)' : 'RESISTANCE (K)'}</label>
+      <input type="number" step="0.1" value="${isNode ? obj.demand : obj.K}" 
+             oninput="syncVal(this.value, '${isNode ? 'demand' : 'K'}')">
+    </div>
+    ${!isNode ? `
+    <div class="prop-group">
+      <label>INITIAL FLOW (Q)</label>
+      <input type="number" step="0.1" value="${obj.Q}" 
+             oninput="syncVal(this.value, 'Q')">
+    </div>` : ''}
+    <button class="btn-danger" onclick="deleteSelected()">DELETE ${type.toUpperCase()}</button>
+  `;
+}
+
+function syncVal(val, key) {
+  if (state.selected) {
+    state.selected.obj[key] = parseFloat(val) || 0;
+  }
+}
+
+function deleteSelected() {
+  if (!state.selected) return;
+  const { type, obj } = state.selected;
+  if (type === 'node') {
+    state.edges = state.edges.filter(ed => ed.from !== obj && ed.to !== obj);
+    state.nodes = state.nodes.filter(n => n !== obj);
+  } else {
+    state.edges = state.edges.filter(ed => ed !== obj);
+  }
+  select(null);
+}
+
+function handleMouseDown(e) {
+  const {x, y} = getPos(e);
+  const hit = findAt(x, y);
+
+  if (e.button === 0) { // Left
+    if (hit) {
+      select(hit.type, hit.obj);
+      if (hit.type === 'node') { state.isDragging = true; state.dragTarget = hit.obj; }
+    } else {
+      select(null);
+    }
+  } 
+  else if (e.button === 2) { // Right
+    state.rightMouseDownPos = {x, y};
+    state.hasMovedSignificantly = false;
+    if (hit?.type === 'node') {
+      state.edgeDraft = { from: hit.obj, to: { x, y } };
+    }
+  }
+}
+
+function handleMouseMove(e) {
+  const {x, y} = getPos(e);
+  if (state.isDragging && state.dragTarget) {
+    state.dragTarget.x = x; state.dragTarget.y = y;
+  }
+  if (state.edgeDraft) {
+    state.edgeDraft.to = {x, y};
+    if (Math.hypot(x - state.rightMouseDownPos.x, y - state.rightMouseDownPos.y) > 5) {
+      state.hasMovedSignificantly = true;
+    }
+  }
+}
+
+function handleMouseUp(e) {
+  const { x, y } = getPos(e);
+
+  if (e.button === 2) { // Right Click
+    if (state.edgeDraft) {
+      if (state.hasMovedSignificantly) {
+        // ACTION A: FINISH DRAWING PIPE
+        const endNode = state.nodes.find(n => Math.hypot(n.x - x, n.y - y) < 15);
+        
+        // Prevent self-loop and duplicates
+        const exists = endNode && state.edges.find(ed => 
+          (ed.from === state.edgeDraft.from && ed.to === endNode) ||
+          (ed.from === endNode && ed.to === state.edgeDraft.from)
+        );
+
+        if (endNode && endNode !== state.edgeDraft.from && !exists) {
+          state.edges.push({ from: state.edgeDraft.from, to: endNode, K: 1.0, Q: 0 });
+        }
+      } else {
+        // ACTION B: DELETE (Only runs if the mouse DID NOT move)
+        const hit = findAt(x, y);
+        if (hit) {
+          if (hit.type === 'node') {
+            state.edges = state.edges.filter(ed => ed.from !== hit.obj && ed.to !== hit.obj);
+            state.nodes = state.nodes.filter(n => n !== hit.obj);
+          } else {
+            state.edges = state.edges.filter(ed => ed !== hit.obj);
+          }
+          if (state.selected?.obj === hit.obj) select(null);
+        }
+      }
+    } else {
+      // Handle right-click deletion for edges when not starting from a node
+      const hit = findAt(x, y);
+      if (hit && hit.type === 'edge') {
+        state.edges = state.edges.filter(ed => ed !== hit.obj);
+        if (state.selected?.obj === hit.obj) select(null);
+      }
+    }
+  }
+
+  // Reset all interaction states
+  state.isDragging = false;
+  state.dragTarget = null;
+  state.edgeDraft = null;
+  state.rightMouseDownPos = null;
+  state.hasMovedSignificantly = false;
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  state.edges.forEach(e => {
+    const isSelected = state.selected?.obj === e;
+    ctx.beginPath();
+    ctx.moveTo(e.from.x, e.from.y);
+    ctx.lineTo(e.to.x, e.to.y);
+    ctx.strokeStyle = isSelected ? varToHex('--accent') : "#888";
+    ctx.lineWidth = isSelected ? 5 : 3;
+    ctx.stroke();
+
+    const angle = Math.atan2(e.to.y - e.from.y, e.to.x - e.from.x);
+    const mx = (e.from.x + e.to.x)/2, my = (e.from.y + e.to.y)/2;
+    drawArrow(e.from.x + Math.cos(angle)*25, e.from.y + Math.sin(angle)*25, angle, 10, isSelected ? varToHex('--accent') : "#bbb");
+    drawText(`K:${e.K} Q:${e.Q}`, mx, my - 14, isSelected ? varToHex('--accent') : "#000");
+  });
+
+  if (state.edgeDraft) {
+    ctx.setLineDash([5,5]); ctx.beginPath();
+    ctx.moveTo(state.edgeDraft.from.x, state.edgeDraft.from.y);
+    ctx.lineTo(state.edgeDraft.to.x, state.edgeDraft.to.y);
+    ctx.strokeStyle = varToHex('--accent'); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  state.nodes.forEach(n => {
+    const isSelected = state.selected?.obj === n;
+    ctx.fillStyle = isSelected ? varToHex('--accent') : "white";
+    ctx.strokeStyle = "black"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.rect(n.x - 8, n.y - 8, 16, 16);
+    ctx.fill(); ctx.stroke();
+    if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : "#1a1a1a");
+  });
+
+  requestAnimationFrame(render);
+}
+
+function drawText(txt, x, y, color) {
+  ctx.font = "bold 14px Consolas";
+  const w = ctx.measureText(txt).width;
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fillRect(x - w/2 - 2, y - 9, w + 4, 12);
+  ctx.fillStyle = color; ctx.textAlign = "center";
+  ctx.fillText(txt, x, y);
+}
+
+function drawArrow(x, y, angle, size, color) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+  ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(0, -size/2); ctx.lineTo(0, size/2);
+  ctx.fillStyle = color; ctx.fill(); ctx.restore();
+}
+
+function varToHex(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+init();
+
+/**
+ * HARDY-CROSS SOLVER: "WALK-AROUND" METHOD
+ * 1. Find fundamental cycles using spanning tree
+ * 2. Walk the loop node-by-node to determine CW/CCW
+ * 3. Apply correction based on drawn pipe orientation
+ */
+
+function solveHardyCross(iterations = 1) {
+    const cycles = findFundamentalCycles();
+    
+    if (cycles.length === 0) {
+        console.warn("SOLVER: No loops detected in the network.");
+        return;
+    }
+
+    console.clear();
+    console.log(`%c RUNNING HARDY-CROSS: ${cycles.length} LOOP(S) FOUND `, "background: #222; color: #bada55; font-size: 1.2em;");
+
+    for (let i = 0; i < iterations; i++) {
+        cycles.forEach((loop, loopIdx) => {
+            let sumKQ2 = 0;    // Numerator (Head loss around loop)
+            let sum2KQ = 0;    // Denominator (Derivative)
+
+            console.group(`Iteration ${i + 1} - Loop ${loopIdx + 1}`);
+
+            loop.forEach(item => {
+                const e = item.edge;
+                const walkDir = item.dir; // 1 if loop walks from -> to, -1 if loop walks to -> from
+                
+                // This is your logic: The "Loop Flow" relative to our clockwise walk
+                const Q_loop = e.Q * walkDir;
+                
+                sumKQ2 += e.K * Q_loop * Math.abs(Q_loop);
+                sum2KQ += 2 * e.K * Math.abs(Q_loop);
+
+                // LOGGING THE WALK
+                console.log(
+                    `Pipe: [${Math.round(e.from.x)},${Math.round(e.from.y)}] -> [${Math.round(e.to.x)},${Math.round(e.to.y)}]\n` +
+                    `  Current Q: ${e.Q}\n` +
+                    `  Walk Direction: ${walkDir === 1 ? 'WITH Pipe' : 'AGAINST Pipe'}\n` +
+                    `  Relative Q (for math): ${Q_loop}`
+                );
+            });
+
+            if (sum2KQ === 0) {
+                console.warn("  Divide by zero error: No flow in loop.");
+                console.groupEnd();
+                return;
+            }
+
+            // Correction formula
+            const dQ = -sumKQ2 / sum2KQ;
+            console.log(`%c  Correction (dQ): ${dQ.toFixed(4)}`, "color: #ff00ff; font-weight: bold;");
+
+            // APPLY UPDATE
+            loop.forEach(item => {
+                const oldQ = item.edge.Q;
+                // If dQ is positive, it means the loop needs more flow in the walk-direction.
+                // If our walk matches the pipe (walkDir=1), we add dQ.
+                // If our walk is against the pipe (walkDir=-1), we subtract dQ.
+                item.edge.Q += (dQ * item.dir);
+                
+                console.log(`  Updated Q: ${oldQ.toFixed(2)} -> ${item.edge.Q.toFixed(2)}`);
+            });
+
+            console.groupEnd();
+        });
+    }
+    
+    // Trigger canvas redraw
+    if (typeof render === "function") render();
+}
+
+function findFundamentalCycles() {
+    const cycles = [];
+    const treeEdges = new Set();
+    const parentMap = new Map();
+    const visited = new Set();
+
+    // 1. Standard Spanning Tree to find chords
+    state.nodes.forEach(startNode => {
+        if (!visited.has(startNode)) {
+            const stack = [startNode];
+            visited.add(startNode);
+            while (stack.length > 0) {
+                const curr = stack.pop();
+                state.edges.forEach(edge => {
+                    let next = null;
+                    if (edge.from === curr) next = edge.to;
+                    else if (edge.to === curr) next = edge.from;
+                    
+                    if (next && !visited.has(next)) {
+                        visited.add(next);
+                        treeEdges.add(edge);
+                        parentMap.set(next, { parent: curr, edge: edge });
+                        stack.push(next);
+                    }
+                });
+            }
+        }
+    });
+
+    const chords = state.edges.filter(e => !treeEdges.has(e));
+
+    chords.forEach(chord => {
+        let loop = [];
+        let nodesInLoop = [];
+        
+        // Trace paths to LCA
+        let pathA = [], pathB = [];
+        let tA = chord.from, tB = chord.to;
+        while (tA) { pathA.push(tA); tA = parentMap.get(tA)?.parent; }
+        while (tB) { pathB.push(tB); tB = parentMap.get(tB)?.parent; }
+        let lca = pathA.find(n => pathB.includes(n));
+
+        // Construct the sequence of nodes: Chord.from -> LCA -> Chord.to -> Chord.from
+        let curr = chord.from;
+        while (curr !== lca) {
+            const info = parentMap.get(curr);
+            loop.push({ edge: info.edge, from: curr, to: info.parent });
+            curr = info.parent;
+        }
+        let rightSide = [];
+        curr = chord.to;
+        while (curr !== lca) {
+            const info = parentMap.get(curr);
+            rightSide.push({ edge: info.edge, from: info.parent, to: curr });
+            curr = info.parent;
+        }
+        loop.push(...rightSide.reverse());
+        loop.push({ edge: chord, from: chord.to, to: chord.from });
+
+        // FINAL STEP: Map the "Walk" to the "Pipe"
+        const finalLoop = loop.map(step => {
+            // dir is 1 if our walk (step.from -> step.to) matches drawn pipe (edge.from -> edge.to)
+            const dir = (step.edge.from === step.from) ? 1 : -1;
+            return { edge: step.edge, dir: dir };
+        });
+
+        cycles.push(finalLoop);
+    });
+    return cycles;
+}
+
+function getNetworkStats() {
+  const nodeCount = state.nodes.length;
+  const edgeCount = state.edges.length;
+  
+  if (nodeCount === 0) return { loops: 0, components: 0 };
+
+  // Track visited nodes to find separate "islands" (components)
+  const visited = new Set();
+  let components = 0;
+
+  state.nodes.forEach(startNode => {
+    if (!visited.has(startNode)) {
+      components++;
+      // Basic BFS to find all connected nodes in this island
+      const queue = [startNode];
+      visited.add(startNode);
+      
+      while (queue.length > 0) {
+        const curr = queue.shift();
+        // Find neighbors via edges
+        state.edges.forEach(edge => {
+          let neighbor = null;
+          if (edge.from === curr) neighbor = edge.to;
+          if (edge.to === curr) neighbor = edge.from;
+          
+          if (neighbor && !visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        });
+      }
+    }
+  });
+
+  // Euler's formula for circuit rank: L = E - V + C
+  const loopCount = edgeCount - nodeCount + components;
+  
+  return {
+    loops: Math.max(0, loopCount),
+    components: components,
+    edges: edgeCount,
+    nodes: nodeCount
+  };
+}
+
+// DEBUG TOOL: Check for hardware "chatter"
+/*
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 2) console.log("%c RIGHT DOWN ", "background: #222; color: #bada55");
+});
+canvas.addEventListener('mouseup', (e) => {
+  if (e.button === 2) console.log("%c RIGHT UP ", "background: #222; color: #ff0000");
+});
+*/
+
+</script>
+</body>
+</html>
