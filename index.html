@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>HydroLoop | V1.0.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HydroLoop | V1.0.1</title>
   <style>
     :root {
       --bg-main: #fdfdfb;
@@ -21,7 +22,7 @@
 
     #panel { width: 260px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
     .panel-header { padding: 15px; font-size: 10px; color: #888; border-bottom: 1px solid var(--border); text-transform: uppercase; }
-    .inspector-body { padding: 20px; flex: 1; }
+    .inspector-body { padding: 20px; flex: 1; overflow-y: auto; max-height: 100%; }
     
     .prop-group { margin-bottom: 15px; }
     .prop-group label { display: block; font-size: 10px; margin-bottom: 6px; font-weight: bold; color: #555; }
@@ -32,19 +33,87 @@
     .btn-danger { width: 100%; margin-top: 20px; padding: 10px; background: transparent; border: 1px solid #dc2626; color: #dc2626; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
     .btn-danger:hover { background: #fee2e2; }
 
+    button { font-family: var(--font-mono); }
+
     footer { background: var(--bg-panel); border-top: 1px solid var(--border); font-size: 9px; padding: 0 15px; display: flex; align-items: center; color: #aaa; }
+    
+    /* Mobile Blocker Overlay */
+    #mobile-blocker {
+      display: none; /* Hidden by default on desktop */
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-main); z-index: 9999; /* Sit on top of everything */
+      justify-content: center; align-items: center; padding: 30px; box-sizing: border-box;
+    }
+
+    .blocker-content { text-align: center; max-width: 320px; border: 1px solid var(--border); background: var(--bg-panel); padding: 30px 20px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .blocker-content h2 { margin: 0 0 5px 0; color: var(--accent); font-size: 18px; letter-spacing: 1px; }
+    .blocker-content p { margin: 0; font-size: 12px; font-weight: bold; }
+
+    /* Media Query: Triggered when screen width is under 768px */
+    @media (max-width: 767px) {
+      #mobile-blocker {
+        display: flex; /* Show overlay on mobile devices */
+      }
+      #app {
+        display: none; /* Hide the main app layout completely to save performance */
+      }
+    }
   </style>
 </head>
 <body>
-
+<div id="mobile-blocker">
+  <div class="blocker-content">
+    <h2>HydroLoop</h2>
+    <p>MOBILE NOT SUPPORTED</p>
+    <div style="font-size: 28px; margin: 20px 0;">📱❌</div>
+    <p style="color: #888; font-size: 11px; line-height: 1.6;">
+      This Hardy-Cross network solver relies on precise desktop mouse interactions (Right-Clicks, Double-Clicks, and Drags). <br><br>
+      Please open this application on a desktop or laptop computer.
+    </p>
+  </div>
+</div>
 <div id="app">
-  <header style="display: flex; justify-content: space-between;">
-    <div>HydroLoop: Solve Pipes with Hardy-Cross Method</div>
-    <a href="https://intbyte.github.io" 
-      style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white;">
-      ← HOME
-    </a>
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
+    
+    <!-- Left Side: Title and Editable Filename Group -->
+    <!-- 'min-width: 0' allows the container to shrink dynamically if needed -->
+    <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; padding-right: 15px;">
+      <div style="font-weight: bold; white-space: nowrap; font-size: 14px;">HydroLoop: Solve Pipes with Hardy-Cross Method</div>
+      
+      <!-- Editable Filename Input -->
+      <input type="text" id="project-name-input" value="untitled-network" 
+            onchange="updateFilename(this.value)"
+            style="background: transparent; border: 1px solid transparent; color: inherit; 
+                    font-family: var(--font-mono); font-size: 13px; padding: 4px 6px; 
+                    border-radius: 5px; max-width: 200px; width: 100%; transition: all 0.15s;"
+            onmouseover="this.style.borderColor = 'var(--border)'"
+            onmouseout="if(document.activeElement !== this) this.style.borderColor = 'transparent'"
+            onfocus="this.style.borderColor = 'var(--accent)'; this.style.background = 'white';"
+            onblur="this.style.borderColor = 'transparent'; this.style.background = 'transparent';">
+    </div>
+    
+    <!-- Right Side: Button Group (With margin-left removed since parent container uses gap) -->
+    <div style="display: flex; gap: 5px; align-items: center;">
+      
+      <button onclick="exportNetwork()" 
+              style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white; cursor: pointer;">
+        SAVE
+      </button>
+
+      <button onclick="document.getElementById('file-input').click()" 
+              style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white; cursor: pointer;">
+        OPEN
+      </button>
+
+      <!-- Hidden File Input -->
+      <input type="file" id="file-input" accept=".json" onchange="importNetwork(event)" style="display:none;">
+
+      <a href="https://intbyte.github.io" 
+        style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white;">
+        ← HOME
+      </a>
+    </div>
   </header>
+  
   <div id="main">
     <div id="canvas-container">
       <canvas id="canvas"></canvas>
@@ -55,7 +124,7 @@
         <div class="empty-state">Select an object to edit properties</div>
       </div>
       <div style="padding: 15px; border-top: 1px solid var(--border);">
-        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 5px;">SOLVER</label>
+        <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 5px;">ITERATIONS</label>
         <input type="number" id="iter-count" value="5" style="margin-bottom: 5px;">
         <button class="btn-danger" 
                 style="border-color: var(--accent); color: var(--accent);" 
@@ -63,7 +132,7 @@
           RUN ITERATIONS
         </button>
       </div>
-      <div style="padding: 15px; border-top: 1px solid var(--border); font-size: 10px; color: #888; line-height: 1.5;">
+      <div style="padding: 15px; border-top: 1px solid var(--border); font-size: 10px; color: #888; line-height: 1.3;">
         • Double-Click: New Node<br>
         • Right-Drag: Draw Pipe<br>
         • Right-Click: Delete Obj<br>
@@ -83,7 +152,8 @@ const state = {
   dragTarget: null,
   edgeDraft: null,
   rightMouseDownPos: null,
-  hasMovedSignificantly: false
+  hasMovedSignificantly: false,
+  filename: "untitled-network"
 };
 
 const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
@@ -234,7 +304,7 @@ function handleMouseMove(e) {
   }
   if (state.edgeDraft) {
     state.edgeDraft.to = {x, y};
-    if (Math.hypot(x - state.rightMouseDownPos.x, y - state.rightMouseDownPos.y) > 5) {
+    if (Math.hypot(x - state.rightMouseDownPos.x, y - state.rightMouseDownPos.y) > 10) {
       state.hasMovedSignificantly = true;
     }
   }
@@ -304,7 +374,8 @@ function render() {
     const angle = Math.atan2(e.to.y - e.from.y, e.to.x - e.from.x);
     const mx = (e.from.x + e.to.x)/2, my = (e.from.y + e.to.y)/2;
     drawArrow(e.from.x + Math.cos(angle)*25, e.from.y + Math.sin(angle)*25, angle, 10, isSelected ? varToHex('--accent') : "#bbb");
-    drawText(`K:${e.K} Q:${e.Q}`, mx, my - 14, isSelected ? varToHex('--accent') : "#000");
+    // drawText(`K:${e.K} Q:${e.Q}`, mx, my - 14, isSelected ? varToHex('--accent') : "#000");
+    drawText(`K:${e.K} Q:${e.Q.toFixed(2)}`, mx, my - 14, isSelected ? varToHex('--accent') : varToHex('--text'));
   });
 
   if (state.edgeDraft) {
@@ -364,57 +435,55 @@ function solveHardyCross(iterations = 1) {
     console.log(`%c RUNNING HARDY-CROSS: ${cycles.length} LOOP(S) FOUND `, "background: #222; color: #bada55; font-size: 1.2em;");
 
     for (let i = 0; i < iterations; i++) {
-        cycles.forEach((loop, loopIdx) => {
-            let sumKQ2 = 0;    // Numerator (Head loss around loop)
-            let sum2KQ = 0;    // Denominator (Derivative)
+        
+        // Create a fresh map to hold pending changes for this iteration step
+        const edgeCorrections = new Map();
+        state.edges.forEach(e => edgeCorrections.set(e, 0));
 
-            console.group(`Iteration ${i + 1} - Loop ${loopIdx + 1}`);
+        cycles.forEach((loop, loopIdx) => {
+            let sumKQ2 = 0;    
+            let sum2KQ = 0;    
 
             loop.forEach(item => {
                 const e = item.edge;
-                const walkDir = item.dir; // 1 if loop walks from -> to, -1 if loop walks to -> from
-                
-                // This is your logic: The "Loop Flow" relative to our clockwise walk
-                const Q_loop = e.Q * walkDir;
-                
+                const Q_loop = e.Q * item.dir;
                 sumKQ2 += e.K * Q_loop * Math.abs(Q_loop);
                 sum2KQ += 2 * e.K * Math.abs(Q_loop);
 
                 // LOGGING THE WALK
+                /*
                 console.log(
                     `Pipe: [${Math.round(e.from.x)},${Math.round(e.from.y)}] -> [${Math.round(e.to.x)},${Math.round(e.to.y)}]\n` +
                     `  Current Q: ${e.Q}\n` +
                     `  Walk Direction: ${walkDir === 1 ? 'WITH Pipe' : 'AGAINST Pipe'}\n` +
                     `  Relative Q (for math): ${Q_loop}`
                 );
+                */
             });
 
-            if (sum2KQ === 0) {
-                console.warn("  Divide by zero error: No flow in loop.");
-                console.groupEnd();
-                return;
+            const EPS = 1e-12;
+
+            if (Math.abs(sum2KQ) < EPS) {
+                console.warn("Divide by zero error or Loop derivative too small: No flow in loop.");
+                return; // Acts as continue. If I ever implement for loop, this will completely exit the solver (CAUTION)
             }
 
-            // Correction formula
-            const dQ = -sumKQ2 / sum2KQ;
-            console.log(`%c  Correction (dQ): ${dQ.toFixed(4)}`, "color: #ff00ff; font-weight: bold;");
+            // Using your exact original sign convention logic here:
+            const dQ = -sumKQ2 / sum2KQ; 
 
-            // APPLY UPDATE
+            // Instead of mutating item.edge.Q directly, stack the change in our map
             loop.forEach(item => {
-                const oldQ = item.edge.Q;
-                // If dQ is positive, it means the loop needs more flow in the walk-direction.
-                // If our walk matches the pipe (walkDir=1), we add dQ.
-                // If our walk is against the pipe (walkDir=-1), we subtract dQ.
-                item.edge.Q += (dQ * item.dir);
-                
-                console.log(`  Updated Q: ${oldQ.toFixed(2)} -> ${item.edge.Q.toFixed(2)}`);
+                const currentAccumulatedCorrection = edgeCorrections.get(item.edge);
+                edgeCorrections.set(item.edge, currentAccumulatedCorrection + (dQ * item.dir));
             });
+        });
 
-            console.groupEnd();
+        // Finally, all loops are evaluated. Apply all corrections simultaneously.
+        edgeCorrections.forEach((correction, edge) => {
+            edge.Q += correction;
         });
     }
     
-    // Trigger canvas redraw
     if (typeof render === "function") render();
 }
 
@@ -532,6 +601,76 @@ function getNetworkStats() {
     edges: edgeCount,
     nodes: nodeCount
   };
+}
+
+function exportNetwork() {
+  // Create an object containing all data needed to rebuild the network
+  const dataStr = JSON.stringify({
+    nodes: state.nodes,
+    edges: state.edges.map(e => ({
+      // Map edges to save ID references of nodes instead of full objects
+      fromIndex: state.nodes.indexOf(e.from),
+      toIndex: state.nodes.indexOf(e.to),
+      K: e.K,
+      Q: e.Q
+    }))
+  }, null, 2); // The '2' spaces it nicely so it's readable if opened in notepad
+
+  // Create a temporary link element to trigger the download
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  
+  link.href = url;
+  //link.download = "pipe-network.json"; // Name of the downloaded file
+  link.download = `${state.filename}.json`;
+  link.click();
+  
+  // Clean up memory
+  URL.revokeObjectURL(url);
+}
+
+function importNetwork(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const nameWithoutExtension = file.name.replace(/\.json$/i, '');
+  state.filename = nameWithoutExtension;
+  document.getElementById('project-name-input').value = nameWithoutExtension;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      
+      // Restore nodes
+      state.nodes = imported.nodes;
+      
+      // Re-link edges back to their actual node objects in memory
+      state.edges = imported.edges.map(savedEdge => ({
+        from: state.nodes[savedEdge.fromIndex],
+        to: state.nodes[savedEdge.toIndex],
+        K: savedEdge.K,
+        Q: savedEdge.Q
+      }));
+
+      // Clear any active selections and redraw the canvas
+      state.selected = null;
+      if (typeof render === "function") render();
+      console.log("Network imported successfully!");
+      
+    } catch (err) {
+      alert("Error parsing file. Ensure it is a valid HydroLoop save file.");
+    }
+  };
+  
+  reader.readAsText(file);
+}
+
+function updateFilename(newName) {
+  // Clean up the string: replace spaces with dashes, remove illegal file characters
+  state.filename = newName.trim().replace(/[^a-zA-Z0-9-_]/g, '-') || "untitled-network";
+  document.getElementById('project-name-input').value = state.filename;
 }
 
 // DEBUG TOOL: Check for hardware "chatter"
