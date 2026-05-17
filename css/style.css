@@ -1,0 +1,94 @@
+:root {
+  --bg-main: #fdfdfb;
+  --bg-panel: #f4f4f2;
+  --border: #cbcbc0;
+  --accent: #2563eb;
+  --text: #1a1a1a;
+  --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+body { margin: 0; font-family: var(--font-mono); background: var(--bg-main); color: var(--text); overflow: hidden; }
+#app { display: grid; grid-template-rows: 45px 1fr 25px; height: 100vh; }
+header { background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+#main { display: flex; flex: 1; position: relative; overflow: hidden; }
+#canvas-container { flex: 1; position: relative; background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 30px 30px; }
+canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+#canvas-container { position: relative; }
+
+#recenter-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    background-color: var(--surface, #ffffff);
+    border: 1px solid var(--border, #cccccc);
+    color: var(--text, #1a1a1a);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s ease;
+    z-index: 10; /* Keeps it layered cleanly on top of mouse clicks */
+}
+
+#recenter-btn img {
+    width: 20px;
+    height: 20px;
+    filter: invert(10%) sepia(10%) saturate(100%) hue-rotate(0deg) brightness(10%);
+    transition: filter 0.2s ease;
+}
+
+#recenter-btn:hover img {
+    filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%);
+}
+
+#recenter-btn:hover {
+    background-color: var(--accent, #007acc);
+    color: white;
+}
+
+#recenter-btn:active { transform: translateY(0); }
+
+#panel { width: 260px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+.panel-header { padding: 15px; font-size: 10px; color: #888; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+.inspector-body { padding: 20px; flex: 1; overflow-y: auto; max-height: 100%; }
+
+.prop-group { margin-bottom: 15px; }
+.prop-group label { display: block; font-size: 10px; margin-bottom: 6px; font-weight: bold; color: #555; }
+input { width: 100%; padding: 10px; border: 1px solid var(--border); background: white; font-family: var(--font-mono); font-size: 12px; outline: none; box-sizing: border-box; }
+input:focus { border-color: var(--accent); }
+
+.empty-state { color: #aaa; text-align: center; padding: 40px 0; font-style: italic; font-size: 11px; }
+.btn-danger { width: 100%; margin-top: 20px; padding: 10px; background: transparent; border: 1px solid #dc2626; color: #dc2626; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
+.btn-danger:hover { background: #fee2e2; }
+
+button { font-family: var(--font-mono); }
+
+footer { background: var(--bg-panel); border-top: 1px solid var(--border); font-size: 9px; padding: 0 15px; display: flex; align-items: center; color: #aaa; }
+
+/* Pan Icon */
+.panning-active { cursor: grab !important; }
+
+/* Mobile Blocker Overlay */
+#mobile-blocker {
+  display: none; /* Hidden by default on desktop */
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-main); z-index: 9999; /* Sit on top of everything */
+  justify-content: center; align-items: center; padding: 30px; box-sizing: border-box;
+}
+
+.blocker-content { text-align: center; max-width: 320px; border: 1px solid var(--border); background: var(--bg-panel); padding: 30px 20px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.blocker-content h2 { margin: 0 0 5px 0; color: var(--accent); font-size: 18px; letter-spacing: 1px; }
+.blocker-content p { margin: 0; font-size: 12px; font-weight: bold; }
+
+/* Media Query: Triggered when screen width is under 768px */
+@media (max-width: 767px) {
+  #mobile-blocker {
+    display: flex; /* Show overlay on mobile devices */
+  }
+  #app {
+    display: none; /* Hide the main app layout completely to save performance */
+  }
+}
