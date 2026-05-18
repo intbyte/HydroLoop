@@ -5,7 +5,31 @@
   --accent: #2563eb;
   --text: #1a1a1a;
   --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+  --surface: #ffffff;
+
+  /* New properties to support flexible canvas rendering */
+  --bg-node: #ffffff;
+  --pipe-base: #888888;
+  --arrow-base: #bbbbbb;
+  --text-bg: rgba(255, 255, 255, 0.9);
 }
+
+/* The Dark Mode Overrides */
+[data-theme="dark"] {
+  --bg-main: #121212;       /* Classic deep CAD onyx */
+  --bg-panel: #1a1a1a;      /* Muted slate sidebar */
+  --border: #2d2d2d;        /* Subtle dark grid borders */
+  --accent: #3b82f6;        /* Slightly shifted neon blue for high-contrast visibility */
+  --text: #e5e7eb;          /* Crispy light gray text */
+  --surface: #666666;
+  
+  /* Canvas overrides */
+  --bg-node: #1a1a1a;
+  --pipe-base: #555555;
+  --arrow-base: #444444;
+  --text-bg: rgba(18, 18, 18, 0.85);
+}
+
 body { margin: 0; font-family: var(--font-mono); background: var(--bg-main); color: var(--text); overflow: hidden; }
 #app { display: grid; grid-template-rows: 45px 1fr 25px; height: 100vh; }
 header { background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
@@ -30,7 +54,7 @@ canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.1s ease;
+    /*transition: all 0.1s ease;*/
     z-index: 10; /* Keeps it layered cleanly on top of mouse clicks */
 }
 
@@ -38,7 +62,7 @@ canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
     width: 20px;
     height: 20px;
     filter: invert(10%) sepia(10%) saturate(100%) hue-rotate(0deg) brightness(10%);
-    transition: filter 0.2s ease;
+    /*transition: filter 0.2s ease;*/
 }
 
 #recenter-btn:hover img {
@@ -50,19 +74,17 @@ canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
     color: white;
 }
 
-#recenter-btn:active { transform: translateY(0); }
-
 #panel { width: 260px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
 .panel-header { padding: 15px; font-size: 10px; color: #888; border-bottom: 1px solid var(--border); text-transform: uppercase; }
 .inspector-body { padding: 20px; flex: 1; overflow-y: auto; max-height: 100%; }
 
-.prop-group { margin-bottom: 15px; }
-.prop-group label { display: block; font-size: 10px; margin-bottom: 6px; font-weight: bold; color: #555; }
-input { width: 100%; padding: 10px; border: 1px solid var(--border); background: white; font-family: var(--font-mono); font-size: 12px; outline: none; box-sizing: border-box; }
+.prop-group { margin-bottom: 10px; }
+.prop-group label { display: block; font-size: 10px; margin-bottom: 6px; font-weight: bold; color: var(--text); }
+input { width: 100%; padding: 10px; border: 1px solid var(--border); color: var(--text); background: var(--text-bg); font-family: var(--font-mono); font-size: 12px; outline: none; box-sizing: border-box; }
 input:focus { border-color: var(--accent); }
 
 .empty-state { color: #aaa; text-align: center; padding: 40px 0; font-style: italic; font-size: 11px; }
-.btn-danger { width: 100%; margin-top: 20px; padding: 10px; background: transparent; border: 1px solid #dc2626; color: #dc2626; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
+.btn-danger { width: 100%; margin-top: 10px; padding: 10px; background: transparent; border: 1px solid #dc2626; color: #dc2626; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
 .btn-danger:hover { background: #fee2e2; }
 
 button { font-family: var(--font-mono); }

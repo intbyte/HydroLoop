@@ -35,7 +35,7 @@ function updateUI() {
   const isNode = type === 'node';
 
   ui.innerHTML = `
-    <div style="font-size:11px; font-weight:bold; margin-bottom:20px; color:var(--accent)">
+    <div style="font-size:10px; font-weight:bold; margin-bottom:20px; color:var(--accent)">
       EDITING_${type.toUpperCase()}
     </div>
     <div class="prop-group">
@@ -187,4 +187,27 @@ function centerCameraOnNetwork() {
     if (container) {
         container.style.backgroundPosition = `${state.camera.x}px ${state.camera.y}px`;
     }
+}
+
+// Initialize Theme Control System safely during startup
+(function initTheme() {
+  const savedTheme = localStorage.getItem('hydroloop-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  
+  // Make sure the button state matches the theme after the DOM finishes cooking
+  window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.textContent = savedTheme === 'dark' ? 'LIGHT' : 'DARK';
+  });
+})();
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('hydroloop-theme', newTheme);
+  
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = newTheme === 'dark' ? 'LIGHT' : 'DARK';
 }

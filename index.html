@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HydroLoop | V1.0.2</title>
+  <title>HydroLoop | V1.0.3</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -34,20 +34,26 @@
                       border-radius: 5px; max-width: 200px; width: 100%; transition: all 0.15s;"
               onmouseover="this.style.borderColor = 'var(--border)'"
               onmouseout="if(document.activeElement !== this) this.style.borderColor = 'transparent'"
-              onfocus="this.style.borderColor = 'var(--accent)'; this.style.background = 'white';"
+              onfocus="this.style.borderColor = 'var(--accent)'; this.style.background = 'var(--bg-panel)';"
               onblur="this.style.borderColor = 'transparent'; this.style.background = 'transparent';">
       </div>
       
       <!-- Right Side: Button Group (With margin-left removed since parent container uses gap) -->
       <div style="display: flex; gap: 5px; align-items: center;">
+
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle-btn" onclick="toggleTheme()"
+                style="text-decoration: none; color: var(--text); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: var(--bg-panel); cursor: pointer;">
+          DARK
+        </button>
         
         <button onclick="exportNetwork()" 
-                style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white; cursor: pointer;">
+                style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: var(--bg-panel); cursor: pointer;">
           SAVE
         </button>
 
         <button onclick="document.getElementById('file-input').click()" 
-                style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white; cursor: pointer;">
+                style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: var(--bg-panel); cursor: pointer;">
           OPEN
         </button>
 
@@ -55,7 +61,7 @@
         <input type="file" id="file-input" accept=".json" onchange="importNetwork(event)" style="display:none;">
 
         <a href="https://intbyte.github.io" 
-          style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: white;">
+          style="text-decoration: none; color: var(--accent); font-size: 11px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; background: var(--bg-panel);">
           ← HOME
         </a>
       </div>
@@ -75,7 +81,7 @@
         </div>
         <div style="padding: 15px; border-top: 1px solid var(--border);">
           <label style="font-size: 10px; font-weight: bold; display: block; margin-bottom: 5px;">ITERATIONS</label>
-          <input type="number" id="iter-count" value="5" style="margin-bottom: 5px;">
+          <input type="number" id="iter-count" value="2" style="margin-bottom: 5px;">
           <button class="btn-danger" 
                   style="border-color: var(--accent); color: var(--accent);" 
                   onclick="solveHardyCross(parseInt(document.getElementById('iter-count').value))">

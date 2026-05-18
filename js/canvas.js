@@ -287,14 +287,15 @@ function render() {
     ctx.beginPath();
     ctx.moveTo(e.from.x, e.from.y);
     ctx.lineTo(e.to.x, e.to.y);
-    ctx.strokeStyle = isSelected ? varToHex('--accent') : "#888";
+    //ctx.strokeStyle = isSelected ? varToHex('--accent') : "#888";
+    ctx.strokeStyle = isSelected ? varToHex('--accent') : varToHex('--pipe-base');
     ctx.lineWidth = isSelected ? 5 : 3;
     ctx.stroke();
 
     const angle = Math.atan2(e.to.y - e.from.y, e.to.x - e.from.x);
     const mx = (e.from.x + e.to.x)/2, my = (e.from.y + e.to.y)/2;
-    drawArrow(e.from.x + Math.cos(angle)*25, e.from.y + Math.sin(angle)*25, angle, 10, isSelected ? varToHex('--accent') : "#bbb");
-    // drawText(`K:${e.K} Q:${e.Q}`, mx, my - 14, isSelected ? varToHex('--accent') : "#000");
+
+    drawArrow(e.from.x + Math.cos(angle)*25, e.from.y + Math.sin(angle)*25, angle, 10, isSelected ? varToHex('--accent') : varToHex('--arrow-base'));
     drawText(`K:${e.K} Q:${e.Q.toFixed(2)}`, mx, my - 14, isSelected ? varToHex('--accent') : varToHex('--text'));
   });
 
@@ -307,11 +308,16 @@ function render() {
 
   state.nodes.forEach(n => {
     const isSelected = state.selected?.obj === n;
-    ctx.fillStyle = isSelected ? varToHex('--accent') : "white";
-    ctx.strokeStyle = "black"; ctx.lineWidth = 2;
+    //ctx.fillStyle = isSelected ? varToHex('--accent') : "white";
+    ctx.fillStyle = isSelected ? varToHex('--accent') : varToHex('--bg-node');
+    //ctx.strokeStyle = "black";
+    ctx.strokeStyle = varToHex('--text');
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = varToHex('--text');
     ctx.beginPath(); ctx.rect(n.x - 8, n.y - 8, 16, 16);
     ctx.fill(); ctx.stroke();
-    if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : "#1a1a1a");
+    //if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : "#1a1a1a");
+    if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : varToHex('--text'));
   });
 
   ctx.restore();    // added v1.0.2
@@ -322,7 +328,8 @@ function render() {
 function drawText(txt, x, y, color) {
   ctx.font = "bold 14px Consolas";
   const w = ctx.measureText(txt).width;
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  //ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fillStyle = varToHex('--text-bg');
   ctx.fillRect(x - w/2 - 2, y - 9, w + 4, 12);
   ctx.fillStyle = color; ctx.textAlign = "center";
   ctx.fillText(txt, x, y);
