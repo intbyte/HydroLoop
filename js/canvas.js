@@ -6,7 +6,23 @@ const canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 const container = document.getElementById("canvas-container");
 
 function init() {
-  window.onresize = () => { canvas.width = container.clientWidth; canvas.height = container.clientHeight; };
+  //window.onresize = () => { canvas.width = container.clientWidth; canvas.height = container.clientHeight; };
+  window.onresize = () => {
+    const dpr = window.devicePixelRatio || 1;
+    
+    // let CSS layout do its job
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // scale only the internal drawing buffer for sharp rendering
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    
+    // reset and scale the drawing matrix so 1 unit
+    // still equals 1 layout pixel on screen
+    ctx.resetTransform();
+    ctx.scale(dpr, dpr);
+  };
   window.onresize();
 
   canvas.addEventListener('mousedown', handleMouseDown);
@@ -277,7 +293,8 @@ function handleMouseUp(e) {
 */
 
 function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  //ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
   ctx.save();   // these 2 lines added v1.0.2
   ctx.translate(state.camera.x, state.camera.y);
