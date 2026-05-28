@@ -37,6 +37,18 @@
  */
 
 function solveHardyCross(iterations = 1) {
+    // Diagonstics (v1.0.4)
+    const diagnostics = runNetworkDiagnostics();
+
+    // If there are errors, stop everything and warn the user.
+    if (diagnostics.length > 0) {
+        alert("NETWORK SETUP ERRORS FOUND:\n\n" + diagnostics.join("\n"));
+        return;
+    }
+
+    console.log("Network is balanced. Running Hardy-Cross...");
+    // End of diagonstics
+
     const cycles = findFundamentalCycles();
     
     if (cycles.length === 0) {

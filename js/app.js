@@ -211,3 +211,48 @@ function toggleTheme() {
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = newTheme === 'dark' ? 'LIGHT' : 'DARK';
 }
+
+function runNetworkDiagnostics() {
+  let errors = [];
+  const tolerance = 0.001; // Prevents false positives from JS decimal math
+
+  // System-Wide Mass Balance
+  let totalSystemFlow = 0;
+  state.nodes.forEach(n => {
+    // (+) Positive = Supply (water entering the network)
+    // (-) Negative = Demand (water leaving the network)
+    totalSystemFlow += (n.demand || 0); 
+  });
+
+  // If the total isn't zero, the system is fundamentally broken
+  if (Math.abs(totalSystemFlow) > tolerance) {
+    const imbalanceType = totalSystemFlow > 0 ? "Excess Supply" : "Excess Demand";
+    errors.push(`System Imbalance: Total supply and demand do not match. Net difference: ${totalSystemFlow.toFixed(3)} (${imbalanceType})`);
+  }
+
+  // Nodal Continuity (Are initial Qs assigned correctly?)
+  state.nodes.forEach((node, index) => {
+    const nodeName = node.name || `Node ${index + 1}`;
+    
+    // Start the nodal balance with the external supply/demand at this junction
+    let nodalBalance = (node.demand || 0); 
+
+    state.edges.forEach(edge => {
+      // If water is flowing to this node from a pipe, it ADDS water to the junction (+)
+      if (edge.to === node) {
+        nodalBalance += (edge.Q || 0);
+      }
+      // If water is flowing FROM this node into a pipe, it REMOVES water from the junction (-)
+      if (edge.from === node) {
+        nodalBalance -= (edge.Q || 0);
+      }
+    });
+
+    // If the water entering minus the water leaving doesn't perfectly equal zero, a leak!
+    if (Math.abs(nodalBalance) > tolerance) {
+      errors.push(`Continuity Error at ${nodeName}: Pipe flows do not match external supply/demand. Off by ${nodalBalance.toFixed(3)}`);
+    }
+  });
+
+  return errors;
+}
