@@ -12,6 +12,8 @@
   --pipe-base: #888888;
   --arrow-base: #bbbbbb;
   --text-bg: rgba(255, 255, 255, 0.9);
+
+  --icon-filter: invert(10%) sepia(10%) saturate(100%) hue-rotate(0deg) brightness(10%);
 }
 
 /* The Dark Mode Overrides */
@@ -28,6 +30,8 @@
   --pipe-base: #555555;
   --arrow-base: #444444;
   --text-bg: rgba(18, 18, 18, 0.85);
+
+  --icon-filter: invert(90%) sepia(5%) saturate(100%) brightness(100%);
 }
 
 body { margin: 0; font-family: var(--font-mono); background: var(--bg-main); color: var(--text); overflow: hidden; }
@@ -73,6 +77,78 @@ canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
     background-color: var(--accent, #007acc);
     color: white;
 }
+
+#tooltip {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  z-index: 1000;
+
+  min-width: 120px;
+  padding: 6px 8px;
+  border-radius: 5px;
+
+  /* Frosted Glass Layer */
+  background: var(--text-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  
+  color: var(--text);
+  font-family: var(--font-mono);
+  line-height: 1.25;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#tooltip .tt-header {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+  align-items: center;
+  padding-bottom: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+}
+
+#tooltip .tt-header img.icon {
+  width: 12px;
+  height: 12px;
+  filter: var(--icon-filter);
+}
+
+#tooltip .tt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0;
+}
+
+#tooltip { font-size: 10px; }
+#tooltip .tt-header { font-size: 12px; }
+
+#tooltip .tt-badge {
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 9px;
+}
+
+#tooltip .badge-blue   { background: rgba(37, 99, 235, 0.12);  color: #1e40af; }
+#tooltip .badge-green  { background: rgba(16, 185, 129, 0.12); color: #065f46; }
+#tooltip .badge-orange { background: rgba(249, 115, 22, 0.12);  color: #9a3412; }
+#tooltip .badge-gray   { background: rgba(0, 0, 0, 0.06);       color: #374151; }
+
+[data-theme="dark"] #tooltip {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] #tooltip .badge-blue   { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+[data-theme="dark"] #tooltip .badge-green  { background: rgba(16, 185, 129, 0.2); color: #86efac; }
+[data-theme="dark"] #tooltip .badge-orange { background: rgba(249, 115, 22, 0.2);  color: #fdba74; }
+[data-theme="dark"] #tooltip .badge-gray   { background: rgba(255, 255, 255, 0.1); color: #d1d5db; }
 
 #panel { width: 260px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
 .panel-header { padding: 15px; font-size: 10px; color: #888; border-bottom: 1px solid var(--border); text-transform: uppercase; }

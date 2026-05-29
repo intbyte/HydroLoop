@@ -144,19 +144,29 @@ function handleMouseMove(e) {
         
         // Offset the background CSS dots so they shift fluidly with the grid
         container.style.backgroundPosition = `${state.camera.x}px ${state.camera.y}px`;
+
+        document.getElementById("tooltip").style.display = "none"; // Hide on pan
         return;
     }
 
     if (state.isDragging && state.dragTarget) {
         state.dragTarget.x = worldPos.x; // Drag nodes using absolute world coordinates
         state.dragTarget.y = worldPos.y;
+
+        document.getElementById("tooltip").style.display = "none"; // Hide on drag
     }
+
     if (state.edgeDraft) {
         state.edgeDraft.to = { x: worldPos.x, y: worldPos.y };
         if (Math.hypot(worldPos.x - state.rightMouseDownPos.x, worldPos.y - state.rightMouseDownPos.y) > 10) {
             state.hasMovedSignificantly = true;
         }
+
+        document.getElementById("tooltip").style.display = "none"; // Hide on link draft
     }
+
+    // Let the decoupled manager handle everything else smoothly (v1.0.5 - tooltip)
+    updateCanvasTooltip(e, worldPos);
 }
 
 /*
@@ -342,3 +352,88 @@ function drawArrow(x, y, angle, size, color) {
 }
 
 function varToHex(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function updateCanvasTooltip(e, worldPos) {
+  const el = document.getElementById("tooltip");
+  if (!el) return;
+
+  // Instantly hide tooltips during canvas manipulation cycles
+  if (state.isDragging || state.edgeDraft || state.isPanning) {
+    el.style.display = "none";
+    return;
+  }
+
+  const hit = findAt(worldPos.x, worldPos.y);
+  if (!hit) {
+    el.style.display = "none";
+    return;
+  }
+
+  let html = "";
+
+  if (hit.type === 'node') {
+    const nIdx = state.nodes.indexOf(hit.obj) + 1;
+    const name = hit.obj.name || `Junction ${nIdx}`;
+    
+    html = `
+      <div class="tt-header">
+        <img src="https://unpkg.com/lucide-static@latest/icons/cross.svg" class="icon">
+        Node Element
+      </div>
+      <div class="tt-row">
+        <span class="tt-label">ID:</span>
+        <span class="tt-value">${name}</span>
+      </div>
+      <div class="tt-row">
+        <span class="tt-label">Demand:</span>
+        <span class="tt-value">${(hit.obj.demand || 0).toFixed(1)} L/s</span>
+      </div>
+    `;
+  } else if (hit.type === 'edge') {
+    const fromName = hit.obj.from.name || `N${state.nodes.indexOf(hit.obj.from) + 1}`;
+    const toName = hit.obj.to.name || `N${state.nodes.indexOf(hit.obj.to) + 1}`;
+    
+    const qVal = hit.obj.Q || 0;
+    
+    // Evaluate hydraulic flow conditions and directions flawlessly
+    let flowStatus = "Stagnant";
+    let statusClass = "badge-gray";
+    
+    if (qVal > 0.001) {
+      flowStatus = "Forward Flow ➔";
+      statusClass = "badge-green";
+    } else if (qVal < -0.001) {
+      flowStatus = "➔ Reverse Flow";
+      statusClass = "badge-orange";
+    }
+
+    html = `
+      <div class="tt-header">
+        <img src="https://unpkg.com/lucide-static@latest/icons/activity.svg" class="icon">
+        Conduit Link
+      </div>
+      <div class="tt-row">
+        <span class="tt-label">Track:</span>
+        <span class="tt-value" style="font-size:11px;">${fromName} to ${toName}</span>
+      </div>
+      <div class="tt-row">
+        <span class="tt-label">Flow (Q):</span>
+        <span class="tt-value">${Math.abs(qVal).toFixed(2)} L/s</span>
+      </div>
+      <div class="tt-row">
+        <span class="tt-label">Loss (K):</span>
+        <span class="tt-value">${(hit.obj.K || 1.0).toFixed(2)}</span>
+      </div>
+      <div class="tt-row" style="margin-top: 8px;">
+        <span class="tt-label">Status:</span>
+        <span class="tt-badge ${statusClass}">${flowStatus}</span>
+      </div>
+    `;
+  }
+
+  // Render and follow mouse cleanly using safe client layout positions
+  el.innerHTML = html;
+  el.style.display = "block";
+  el.style.left = `${e.clientX + 15}px`;
+  el.style.top = `${e.clientY + 15}px`;
+}
