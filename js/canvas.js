@@ -306,7 +306,8 @@ function render() {
     const mx = (e.from.x + e.to.x)/2, my = (e.from.y + e.to.y)/2;
 
     drawArrow(e.from.x + Math.cos(angle)*25, e.from.y + Math.sin(angle)*25, angle, 10, isSelected ? varToHex('--accent') : varToHex('--arrow-base'));
-    drawText(`K:${e.K} Q:${e.Q.toFixed(2)}`, mx, my - 14, isSelected ? varToHex('--accent') : varToHex('--text'));
+    // removed from v1.0.6 for blurry texts
+    //drawText(`K:${e.K} Q:${e.Q.toFixed(2)}`, mx, my - 14, isSelected ? varToHex('--accent') : varToHex('--text'));
   });
 
   if (state.edgeDraft) {
@@ -326,11 +327,13 @@ function render() {
     ctx.strokeStyle = varToHex('--text');
     ctx.beginPath(); ctx.rect(n.x - 8, n.y - 8, 16, 16);
     ctx.fill(); ctx.stroke();
-    //if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : "#1a1a1a");
-    if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : varToHex('--text'));
+    // removed from v1.0.6 for blurry texts
+    //if(n.demand !== 0) drawText(`${n.demand}`, n.x, n.y - 20, isSelected ? varToHex('--accent') : varToHex('--text'));
   });
 
   ctx.restore();    // added v1.0.2
+
+  updateHTMLTextLayer();  // added v1.0.6
 
   requestAnimationFrame(render);
 }
@@ -436,4 +439,51 @@ function updateCanvasTooltip(e, worldPos) {
   el.style.display = "block";
   el.style.left = `${e.clientX + 15}px`;
   el.style.top = `${e.clientY + 15}px`;
+}
+
+function updateHTMLTextLayer() {
+  const layer = document.getElementById("canvas-labels-layer");
+  if (!layer) return;
+
+  // Wipe the layer clean
+  layer.innerHTML = "";
+
+  // Map all active display targets into a unified processing queue
+  const displayItems = [
+    ...state.edges.map(edge => ({
+      x: (edge.from.x + edge.to.x) / 2,
+      y: (edge.from.y + edge.to.y) / 2,
+      className: "html-pipe-data",
+      html: `<span class="metric-lbl">Q:</span>${(edge.Q || 0).toFixed(2)} <span class="data-sep">|</span> <span class="metric-lbl">K:</span>${(edge.K || 1).toFixed(1)}`
+    })),
+    ...state.nodes.filter(n => n.demand && n.demand !== 0).map(node => {
+      const isSupply = node.demand > 0;
+      
+      return {
+        x: node.x,
+        y: node.y - 20,   // offset from the square node
+        className: `html-node-demand ${isSupply ? 'node-supply' : 'node-demand'}`,
+        html: isSupply ? `In: ${node.demand} L/s` : `Out: ${Math.abs(node.demand)} L/s`
+      };
+    })
+  ];
+
+  // Process the queue, apply translations, and inject into the DOM
+  displayItems.forEach(item => {
+    const screenX = item.x + state.camera.x;
+    const screenY = item.y + state.camera.y;
+
+    // Viewport frustum culling: Skip rendering if element drifts completely off-screen
+    if (screenX < 0 || screenX > canvas.width || screenY < 0 || screenY > canvas.height) {
+      return;
+    }
+
+    const div = document.createElement("div");
+    div.className = item.className;
+    div.style.left = `${screenX}px`;
+    div.style.top = `${screenY}px`;
+    div.innerHTML = item.html;
+    
+    layer.appendChild(div);
+  });
 }
