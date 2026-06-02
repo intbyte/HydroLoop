@@ -110,29 +110,6 @@ function handleMouseDown(e) {
     }
 }
 
-/*
-function handleMouseDown(e) {
-  const {x, y} = getPos(e);
-  const hit = findAt(x, y);
-
-  if (e.button === 0) { // Left
-    if (hit) {
-      select(hit.type, hit.obj);
-      if (hit.type === 'node') { state.isDragging = true; state.dragTarget = hit.obj; }
-    } else {
-      select(null);
-    }
-  } 
-  else if (e.button === 2) { // Right
-    state.rightMouseDownPos = {x, y};
-    state.hasMovedSignificantly = false;
-    if (hit?.type === 'node') {
-      state.edgeDraft = { from: hit.obj, to: { x, y } };
-    }
-  }
-}
-*/
-
 function handleMouseMove(e) {
     const screenPos = getPos(e);
     const worldPos = toWorld(screenPos); // Translate mouse position to world grid
@@ -167,22 +144,12 @@ function handleMouseMove(e) {
 
     // Let the decoupled manager handle everything else smoothly (v1.0.5 - tooltip)
     updateCanvasTooltip(e, worldPos);
-}
 
-/*
-function handleMouseMove(e) {
-  const {x, y} = getPos(e);
-  if (state.isDragging && state.dragTarget) {
-    state.dragTarget.x = x; state.dragTarget.y = y;
-  }
-  if (state.edgeDraft) {
-    state.edgeDraft.to = {x, y};
-    if (Math.hypot(x - state.rightMouseDownPos.x, y - state.rightMouseDownPos.y) > 10) {
-      state.hasMovedSignificantly = true;
+    const coordDisplay = document.getElementById("footer-coords");
+    if (coordDisplay) {
+        coordDisplay.textContent = `X: ${Math.round(worldPos.x)}, Y: ${Math.round(worldPos.y)}`;
     }
-  }
 }
-*/
 
 function handleMouseUp(e) {
     if (e.button === 1) { // Middle Mouse Button Released
@@ -233,58 +200,6 @@ function handleMouseUp(e) {
     state.rightMouseDownPos = null;
     state.hasMovedSignificantly = false;
 }
-
-/*
-function handleMouseUp(e) {
-  const { x, y } = getPos(e);
-
-  if (e.button === 2) { // Right Click
-    if (state.edgeDraft) {
-      if (state.hasMovedSignificantly) {
-        // ACTION A: FINISH DRAWING PIPE
-        const endNode = state.nodes.find(n => Math.hypot(n.x - x, n.y - y) < 15);
-        
-        // Prevent self-loop and duplicates
-        const exists = endNode && state.edges.find(ed => 
-          (ed.from === state.edgeDraft.from && ed.to === endNode) ||
-          (ed.from === endNode && ed.to === state.edgeDraft.from)
-        );
-
-        if (endNode && endNode !== state.edgeDraft.from && !exists) {
-          state.edges.push({ from: state.edgeDraft.from, to: endNode, K: 1.0, Q: 0 });
-        }
-      } else {
-        // ACTION B: DELETE (Only runs if the mouse DID NOT move)
-        const hit = findAt(x, y);
-        if (hit) {
-          if (hit.type === 'node') {
-            state.edges = state.edges.filter(ed => ed.from !== hit.obj && ed.to !== hit.obj);
-            state.nodes = state.nodes.filter(n => n !== hit.obj);
-          } else {
-            state.edges = state.edges.filter(ed => ed !== hit.obj);
-          }
-          if (state.selected?.obj === hit.obj) select(null);
-        }
-      }
-    } else {
-      // Handle right-click deletion for edges when not starting from a node
-      const hit = findAt(x, y);
-      if (hit && hit.type === 'edge') {
-        state.edges = state.edges.filter(ed => ed !== hit.obj);
-        if (state.selected?.obj === hit.obj) select(null);
-      }
-    }
-  }
-
-  // Reset all interaction states
-  state.isDragging = false;
-  state.dragTarget = null;
-  state.edgeDraft = null;
-  state.rightMouseDownPos = null;
-  state.hasMovedSignificantly = false;
-}
-
-*/
 
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);

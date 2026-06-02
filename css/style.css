@@ -194,6 +194,7 @@ input:focus { border-color: var(--accent); }
 button { font-family: var(--font-mono); }
 
 footer { background: var(--bg-panel); border-top: 1px solid var(--border); font-size: 9px; padding: 0 15px; display: flex; align-items: center; color: #aaa; }
+.footer-metric { font-family: var(--font-mono); letter-spacing: 0.05em; }
 
 /* Pan Icon */
 .panning-active { cursor: grab !important; }
