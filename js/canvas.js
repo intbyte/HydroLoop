@@ -50,15 +50,26 @@ function handleDoubleClick(e) {
 
   if (!hit) {
     // Normal behavior: Create isolated node
-    const newNode = { x, y, demand: 0 };
-    state.nodes.push(newNode);
-    select('node', newNode);
+    const snapped = snapPoint({ x, y });
+    
+    // Prevent stacking nodes on the exact same snapped grid point
+    const nodeExistsAtSnap = state.nodes.find(n => n.x === snapped.x && n.y === snapped.y);
+    
+    if (!nodeExistsAtSnap) {
+      const newNode = { x: snapped.x, y: snapped.y, demand: 0 };
+      state.nodes.push(newNode);
+      select('node', newNode);
+    }
   } else if (hit.type === 'edge') {
     // EDGE SPLIT LOGIC
     const originalEdge = hit.obj;
+
+    // Ensure the new mid-node obeys the grid snap rules
+    const snapped = snapPoint({ x, y });
+    const midNode = { x: snapped.x, y: snapped.y, demand: 0 };
     
     // Create the new junction node at click position
-    const midNode = { x, y, demand: 0 };
+    //const midNode = { x, y, demand: 0 };
     state.nodes.push(midNode);
     
     // Create two new pipes connecting through the midNode
@@ -127,14 +138,21 @@ function handleMouseMove(e) {
     }
 
     if (state.isDragging && state.dragTarget) {
-        state.dragTarget.x = worldPos.x; // Drag nodes using absolute world coordinates
-        state.dragTarget.y = worldPos.y;
+        const snapped = snapPoint(worldPos);
+        state.dragTarget.x = snapped.x; // Drag nodes using snapped absolute positions
+        state.dragTarget.y = snapped.y;
+
+        //state.dragTarget.x = worldPos.x; // Drag nodes using absolute world coordinates
+        //state.dragTarget.y = worldPos.y;
 
         document.getElementById("tooltip").style.display = "none"; // Hide on drag
     }
 
     if (state.edgeDraft) {
-        state.edgeDraft.to = { x: worldPos.x, y: worldPos.y };
+        // Snap the drafting line visually so it locks to the grid as you draw
+        const snappedDraft = snapPoint(worldPos);
+        state.edgeDraft.to = { x: snappedDraft.x, y: snappedDraft.y };
+        //state.edgeDraft.to = { x: worldPos.x, y: worldPos.y };
         if (Math.hypot(worldPos.x - state.rightMouseDownPos.x, worldPos.y - state.rightMouseDownPos.y) > 10) {
             state.hasMovedSignificantly = true;
         }
@@ -401,4 +419,26 @@ function updateHTMLTextLayer() {
     
     layer.appendChild(div);
   });
+}
+
+// Initialize grid snapping capability state
+if (!window.state) window.state = {};
+state.snapToGrid = false; 
+
+function toggleGridSnap() {
+    state.snapToGrid = !state.snapToGrid;
+    const btn = document.getElementById("snap-toggle-btn");
+    if (btn) {
+        btn.classList.toggle("snap-active", state.snapToGrid);
+    }
+}
+
+// Highly efficient vector tracking snap formula
+function snapPoint(worldPos) {
+    if (!state.snapToGrid) return worldPos;
+    const gridSize = 30; // Must match the grid size specified in css
+    return {
+        x: Math.round(worldPos.x / gridSize) * gridSize,
+        y: Math.round(worldPos.y / gridSize) * gridSize
+    };
 }

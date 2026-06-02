@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HydroLoop | V1.0.7</title>
+  <title>HydroLoop | V1.0.8</title>
+  <meta name="description" content="An interactive, browser-based hydraulic pipeline network calculator using the Hardy-Cross method. Easily calculate flow rates, K-factors, and head loss with visual grid drafting.">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,8 +25,10 @@
       <!-- Left Side: Title and Editable Filename Group -->
       <!-- 'min-width: 0' allows the container to shrink dynamically if needed -->
       <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; padding-right: 15px;">
-        <div style="font-weight: bold; white-space: nowrap; font-size: 14px;">HydroLoop: Solve Pipes with Hardy-Cross Method</div>
-        
+        <div style="font-family: 'Segoe UI Light', 'Helvetica Neue', Arial, sans-serif; font-weight: 400; white-space: nowrap; font-size: 15px; letter-spacing: 0.05em; color: var(--text);">HydroLoop</div>
+        <span style="opacity: 0.25; font-size: 15px; font-weight: normal; user-select: none;">//</span>
+        <div style="font-weight: normal; white-space: nowrap; font-size: 13px; color: var(--text); opacity: 0.5; letter-spacing: -0.03em;">Solve Pipes with Hardy-Cross Method</div>
+
         <!-- Editable Filename Input -->
         <input type="text" id="project-name-input" value="untitled-network" 
               onchange="updateFilename(this.value)"
@@ -95,15 +98,21 @@
           • Double-Click: New Node<br>
           • Right-Drag: Draw Pipe<br>
           • Right-Click: Delete Obj<br>
-          • Left-Drag: Move Node
+          • Left-Drag: Move Node<br>
+          • Middle-Drag: Move Canvas
         </div>
       </div>
     </div>
     <footer>
-      <div>
+      <div style="flex: 1;">
         SYSTEM_READY // JUNE, 2026 
         <span id="footer-coords" class="footer-metric" style="margin-left: 10px;">X: 0, Y: 0</span>
       </div>
+    
+      <button id="snap-toggle-btn" title="Snap to Grid" onclick="toggleGridSnap()">
+        <img id="snap-icon" src="https://unpkg.com/lucide-static@latest/icons/magnet.svg" 
+            alt="Snap" style="filter: var(--icon-filter);">
+      </button>
     </footer>
   </div>
   <!-- Application Scripts Loaded Monotonically -->
